@@ -50,6 +50,21 @@ class SimpleSwitch13(simple_switch_13.SimpleSwitch13):
         #           {'bridge': {'priority': 0xa000}}}
         # self.stp.set_config(config)
 
+    def add_flow(self, datapath, priority, match, actions, buffer_id=None, idle_timeout: int = 0, hard_timeout: int = 0):
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                             actions)]
+        if buffer_id:
+            mod = parser.OFPFlowMod(datapath=datapath, buffer_id=buffer_id,
+                                    priority=priority, match=match,
+                                    instructions=inst)
+        else:
+            mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
+                                    match=match, instructions=inst, idle_timeout=idle_timeout, hard_timeout=hard_timeout)
+        datapath.send_msg(mod)
+
     def delete_flow(self, datapath):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -94,7 +109,7 @@ class SimpleSwitch13(simple_switch_13.SimpleSwitch13):
         ip_pkt = pkt.get_protocol(ipv4.ipv4)
         if ip_pkt:
             match = ip_match_handler(ip_pkt, parser)
-            self.add_flow(datapath=datapath, priority=1, match=match, actions=actions)
+            self.add_flow(datapath=datapath, priority=1, match=match, actions=actions, idle_timeout=10, hard_timeout=60)
 
         # install a flow to avoid packet_in next time
         if out_port != ofproto.OFPP_FLOOD:

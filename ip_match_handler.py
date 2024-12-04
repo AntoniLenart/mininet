@@ -39,7 +39,7 @@ def ip_match_handler(ip_pkt, parser):
             ipv4_dst=ip_pkt.dst,
             ip_proto=protocol,
             udp_src=udp_pkt.src_port,
-            udp_dst=udp_pkt.dst_port,
+            udp_dst=udp_pkt.dst_port
         )
 
     return match
