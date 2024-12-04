@@ -29,6 +29,8 @@ from ryu.app import simple_switch_13
 from ryu.lib.packet import ipv4
 from ryu import *
 
+from ip_match_handler import ip_match_handler
+
 
 class SimpleSwitch13(simple_switch_13.SimpleSwitch13):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -88,52 +90,10 @@ class SimpleSwitch13(simple_switch_13.SimpleSwitch13):
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
 
-        print(pkt)
-
         # Parse IP packets and create a match using 5-tuple
         ip_pkt = pkt.get_protocol(ipv4.ipv4)
         if ip_pkt:
-            protocol = ip_pkt.proto
-            print(protocol)
-            print(ip_pkt)
-            match = parser.OFPMatch(
-                eth_type=0x0800,
-                ipv4_src=ip_pkt.src,
-                ipv4_dst=ip_pkt.dst,
-                ip_proto=protocol,
-            )
-
-            if protocol == 1:  # ICMP
-                match = parser.OFPMatch(
-                    eth_type=0x0800,
-                    ipv4_src=ip_pkt.src,
-                    ipv4_dst=ip_pkt.dst,
-                    ip_proto=protocol,
-                )
-
-            elif protocol == 6:  # TCP
-                tcp_pkt = pkt.get_protocol(tcp)
-                match = parser.OFPMatch(
-                    eth_type=0x0800,
-                    ipv4_src=ip_pkt.src,
-                    ipv4_dst=ip_pkt.dst,
-                    ip_proto=protocol,
-                    tcp_src=tcp_pkt.src_port,
-                    tcp_dst=tcp_pkt.dst_port,
-                )
-
-            elif protocol == 17:  # UDP
-                udp_pkt = pkt.get_protocol(udp)
-                match = parser.OFPMatch(
-                    eth_type=0x0800,
-                    ipv4_src=ip_pkt.src,
-                    ipv4_dst=ip_pkt.dst,
-                    ip_proto=protocol,
-                    udp_src=udp_pkt.src_port,
-                    udp_dst=udp_pkt.dst_port,
-                )
-
-            # Install a flow to avoid packet_in next time
+            match = ip_match_handler(ip_pkt, parser)
             self.add_flow(datapath=datapath, priority=1, match=match, actions=actions)
 
         # install a flow to avoid packet_in next time
