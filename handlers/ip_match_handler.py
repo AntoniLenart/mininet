@@ -1,12 +1,13 @@
-from ryu.lib.packet import tcp, udp
+from ryu.lib.packet import tcp, udp, ipv4, ether_types
+from ryu.ofproto.ofproto_v1_3_parser import OFPMatch, ofproto_parser
 
 
-def ip_match_handler(ip_pkt, parser):
+def ip_match_handler(ip_pkt: ipv4, parser: ofproto_parser) -> OFPMatch:
     protocol = ip_pkt.proto
 
     # Default match
     match = parser.OFPMatch(
-        eth_type=0x0800,
+        eth_type=ether_types.ETH_TYPE_IP,
         ipv4_src=ip_pkt.src,
         ipv4_dst=ip_pkt.dst,
         ip_proto=protocol,
@@ -14,7 +15,7 @@ def ip_match_handler(ip_pkt, parser):
 
     if protocol == 1:  # ICMP
         match = parser.OFPMatch(
-            eth_type=0x0800,
+            eth_type=ether_types.ETH_TYPE_IP,
             ipv4_src=ip_pkt.src,
             ipv4_dst=ip_pkt.dst,
             ip_proto=protocol,
@@ -23,7 +24,7 @@ def ip_match_handler(ip_pkt, parser):
     elif protocol == 6:  # TCP
         tcp_pkt = ip_pkt.get_protocol(tcp.tcp)
         match = parser.OFPMatch(
-            eth_type=0x0800,
+            eth_type=ether_types.ETH_TYPE_IP,
             ipv4_src=ip_pkt.src,
             ipv4_dst=ip_pkt.dst,
             ip_proto=protocol,
@@ -34,7 +35,7 @@ def ip_match_handler(ip_pkt, parser):
     elif protocol == 17:  # UDP
         udp_pkt = ip_pkt.get_protocol(udp.udp)
         match = parser.OFPMatch(
-            eth_type=0x0800,
+            eth_type=ether_types.ETH_TYPE_IP,
             ipv4_src=ip_pkt.src,
             ipv4_dst=ip_pkt.dst,
             ip_proto=protocol,

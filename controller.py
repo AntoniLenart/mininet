@@ -12,24 +12,19 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 
-from ryu.base import app_manager
-from ryu.controller import ofp_event
-from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
+from ryu.controller.handler import MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
-from ryu.lib.packet.tcp import tcp
-from ryu.lib.packet.udp import udp
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib import dpid as dpid_lib
 from ryu.lib import stplib
-from ryu.lib.packet import packet
+from ryu.lib.packet import packet, ether_types, arp
 from ryu.lib.packet import ethernet
 from ryu.app import simple_switch_13
 from ryu.lib.packet import ipv4
-from ryu import *
 
-from ip_match_handler import ip_match_handler
+from handlers.arp_handler import arp_handler
+from handlers.ip_match_handler import ip_match_handler
 
 
 class SimpleSwitch13(simple_switch_13.SimpleSwitch13):
@@ -50,7 +45,9 @@ class SimpleSwitch13(simple_switch_13.SimpleSwitch13):
         #           {'bridge': {'priority': 0xa000}}}
         # self.stp.set_config(config)
 
-    def add_flow(self, datapath, priority, match, actions, buffer_id=None, idle_timeout: int = 0, hard_timeout: int = 0):
+    def add_flow(self, datapath, priority, match, actions, buffer_id=None, idle_timeout: int = 0,
+                 hard_timeout: int = 0):
+
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
@@ -103,13 +100,20 @@ class SimpleSwitch13(simple_switch_13.SimpleSwitch13):
 
         actions = [parser.OFPActionOutput(out_port)]
 
-        self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
+        # self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
+
+        # Check whether is it arp packet
+        if eth.ethertype == ether_types.ETH_TYPE_ARP:
+            # self.logger.info("Received ARP Packet %s %s %s ", dpid, src, dst)
+            a = pkt.get_protocol(arp.arp)
+            arp_handler(datapath, eth, a, in_port)
 
         # Parse IP packets and create a match using 5-tuple
         ip_pkt = pkt.get_protocol(ipv4.ipv4)
         if ip_pkt:
             match = ip_match_handler(ip_pkt, parser)
             self.add_flow(datapath=datapath, priority=1, match=match, actions=actions, idle_timeout=10, hard_timeout=60)
+            # self.logger.info("ADDED FLOW: match: %s, actions: %s", match, actions)
 
         # install a flow to avoid packet_in next time
         if out_port != ofproto.OFPP_FLOOD:
