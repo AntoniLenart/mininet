@@ -5,8 +5,12 @@ arp_table = {}
 
 
 def arp_handler(datapath, eth, a, in_port) -> None:
+
     if a.src_ip not in arp_table:
-        arp_table[a.src_ip] = eth.src
+        arp_table[a.src_mac] = a.src_ip
+    elif arp_table[a.src_mac] != a.src_ip:  # Check it the ip address has changed
+        arp_table[a.src_mac] = a.src_ip
+
     print(arp_table)
 
     r = arp_table.get(a.dst_ip)
